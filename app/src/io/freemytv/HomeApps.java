@@ -219,6 +219,12 @@ final class HomeApps {
         return null;
     }
 
+    /** An app's brand color as "#RRGGBB" (WebHome's glow), or "" when it isn't in SHELF. */
+    static String brandColor(String pkg) {
+        String[] d = known(pkg);
+        return d == null ? "" : "#" + d[3];
+    }
+
     /** The shelf's packages in order: the user's list (Settings > Shelf), or the built-in one. */
     static List<String> shelfPackages(Context c) {
         List<String> custom = Prefs.shelf();

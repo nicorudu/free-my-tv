@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1920, height=1080, initial-scale=1">
+<title>Home</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="stage">
+    <div id="bg"></div>
+
+    <header id="top">
+      <div id="clock-wrap">
+        <div id="clock">--:--</div>
+        <div id="date"></div>
+      </div>
+      <div id="chips">
+        <div id="weather" class="glass chip">
+          <span id="wx-icon"></span>
+          <span id="wx-temp">--°</span>
+          <span id="wx-text"></span>
+        </div>
+        <div id="settings" class="glass chip round" title="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.87l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.7 1.7 0 0 0-1.87-.34 1.7 1.7 0 0 0-1.03 1.56V21a2 2 0 1 1-4 0v-.09A1.7 1.7 0 0 0 8.9 19.4a1.7 1.7 0 0 0-1.87.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.54 15a1.7 1.7 0 0 0-1.56-1.03H3a2 2 0 1 1 0-4h.09A1.7 1.7 0 0 0 4.6 8.9a1.7 1.7 0 0 0-.34-1.87l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.7 1.7 0 0 0 1.87.34H9a1.7 1.7 0 0 0 1.03-1.56V3a2 2 0 1 1 4 0v.09a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.87-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.7 1.7 0 0 0-.34 1.87V9c.26.6.86 1 1.51 1.03H21a2 2 0 1 1 0 4h-.09a1.7 1.7 0 0 0-1.51 1.03z"/></svg>
+        </div>
+      </div>
+    </header>
+
+    <section id="calendar" class="glass card">
+      <div class="card-head">
+        <span class="card-title">This week</span>
+        <span id="cal-status" class="muted"></span>
+      </div>
+      <div id="cal-list"></div>
+    </section>
+
+    <section id="sketch" class="glass card empty-state">
+      <div id="sketch-frame"><img id="sketch-img" alt=""></div>
+      <div id="sketch-text">
+        <span class="card-title">Sketches</span>
+        <span id="sketch-when" class="muted"></span>
+        <span id="sketch-hint">Draw on your phone and tap Send. It shows up here.</span>
+      </div>
+    </section>
+
+    <nav id="dock" class="glass">
+      <div id="dock-tiles"></div>
+    </nav>
+    <div id="dock-label"></div>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="data.js"></script>
+  <script src="ics.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

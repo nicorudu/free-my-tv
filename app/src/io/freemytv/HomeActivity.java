@@ -20,6 +20,7 @@ public class HomeActivity extends Activity {
     /** Opens All Apps (a remote's All Apps button, RemoteKeys). */
     static final String EXTRA_ALL_APPS = "io.freemytv.ALL_APPS";
     private HomeView home;
+    private WebHome web;   // set instead of home when this build carries a web home screen
     private int prefsVersion = Prefs.version;   // settings changed while we were away: start over
 
     @Override protected void onCreate(Bundle savedInstanceState) {
@@ -40,6 +41,17 @@ public class HomeActivity extends Activity {
             return;
         }
         Ui.init(this);
+        if (WebHome.present(this)) {
+            // This build's home screen is a web page (app/assets/home): the rest of Free My TV is unchanged.
+            try {
+                web = new WebHome(this);
+                setContentView(web);
+                return;
+            } catch (Exception e) {
+                AppLog.w("web home failed, drawing the built-in one: " + e);   // no WebView on this TV
+                web = null;
+            }
+        }
         home = new HomeView(this);
         setContentView(home);
         getWindow().setBackgroundDrawable(null);
@@ -74,18 +86,24 @@ public class HomeActivity extends Activity {
             return;
         }
         if (home != null) home.resume();
+        if (web != null) web.resume();
         Updates.tellOnce(this);   // an update the week's check got ready: said once
     }
 
     @Override protected void onPause() {
         resumed = false;
         if (home != null) home.pause();
+        if (web != null) web.pause();
         super.onPause();
     }
 
     /** Home button pressed on the home screen: back to the entry state (focus on the first app, sheet closed). */
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
+        if (web != null) {
+            web.reset();
+            return;
+        }
         if (home == null) return;
         if (intent.getBooleanExtra(EXTRA_ALL_APPS, false)) {
             home.showAllApps();
@@ -107,6 +125,7 @@ public class HomeActivity extends Activity {
             home.removeCallbacks(powerOnLive);
             home.destroy();
         }
+        if (web != null) web.destroy();
         super.onDestroy();
     }
 
@@ -119,6 +138,7 @@ public class HomeActivity extends Activity {
         keyPressed = true;
         if (RemoteKeys.onKey(this, event)) return true;
         if (home != null && home.onKey(event)) return true;
+        if (web != null && web.onKey(event)) return true;
         return super.dispatchKeyEvent(event);
     }
 

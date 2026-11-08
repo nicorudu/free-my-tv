@@ -1,0 +1,131 @@
+/* Home screen for a 1920x1080 TV. A soft gradient, light by day and dark after sunset (body.day / body.night).
+   No live blur and no images: smooth on a 2 GB stick. */
+body.day {
+  --base: #eef0f6;
+  --blob-1: rgba(255, 196, 214, 0.70);
+  --blob-2: rgba(170, 205, 255, 0.75);
+  --blob-3: rgba(255, 226, 180, 0.65);
+  --ink: #15171f;
+  --ink-2: rgba(21, 23, 31, 0.68);
+  --ink-3: rgba(21, 23, 31, 0.45);
+  --glass: rgba(255, 255, 255, 0.55);
+  --glass-edge: rgba(255, 255, 255, 0.95);
+  --glass-line: rgba(20, 24, 40, 0.06);
+  --shadow: 0 22px 60px rgba(60, 70, 110, 0.16);
+  --tile: rgba(255, 255, 255, 0.78);
+  --accent: #2f6feb;
+}
+body.night {
+  --base: #0c0e17;
+  --blob-1: rgba(110, 72, 190, 0.45);
+  --blob-2: rgba(30, 110, 160, 0.40);
+  --blob-3: rgba(190, 80, 120, 0.28);
+  --ink: #f3f5fa;
+  --ink-2: rgba(243, 245, 250, 0.70);
+  --ink-3: rgba(243, 245, 250, 0.45);
+  --glass: rgba(255, 255, 255, 0.07);
+  --glass-edge: rgba(255, 255, 255, 0.22);
+  --glass-line: rgba(255, 255, 255, 0.08);
+  --shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+  --tile: rgba(255, 255, 255, 0.08);
+  --accent: #8fc2ff;
+}
+:root { --radius: 34px; --font: "SF Pro Display", "Google Sans", Roboto, "Segoe UI", system-ui, sans-serif; }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; font-family: var(--font); }
+body { background: var(--base); color: var(--ink); transition: background 1.2s ease, color 1.2s ease; }
+
+#stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+#bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(900px 700px at 8% 12%, var(--blob-1), transparent 70%),
+    radial-gradient(1100px 800px at 92% 22%, var(--blob-2), transparent 70%),
+    radial-gradient(1000px 700px at 55% 105%, var(--blob-3), transparent 70%),
+    var(--base);
+  transition: opacity 1.2s ease;
+}
+
+/* ---------- glass ---------- */
+.glass {
+  position: absolute;
+  background: var(--glass);
+  box-shadow: inset 0 1px 0 var(--glass-edge), inset 0 0 0 1px var(--glass-line), var(--shadow);
+  overflow: hidden;
+}
+.glass::before { /* soft top sheen */
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 45%);
+}
+.glass > * { position: relative; }
+
+/* ---------- clock ---------- */
+#top { position: absolute; left: 96px; top: 72px; display: flex; flex-direction: column; gap: 22px; }
+#clock { font-size: 168px; font-weight: 300; letter-spacing: -6px; line-height: 0.95; }
+#date { font-size: 34px; font-weight: 500; color: var(--ink-2); margin-top: 10px; }
+.chip { position: relative; display: inline-flex; align-items: center; gap: 14px; height: 64px; padding: 0 28px 0 18px;
+        border-radius: 32px; font-size: 28px; font-weight: 500; width: max-content; }
+#wx-icon { width: 36px; height: 36px; display: inline-flex; color: var(--ink); }
+#chips { display: flex; gap: 16px; }
+.chip.round { width: 64px; padding: 0; justify-content: center; }
+.chip.round svg { width: 30px; height: 30px; color: var(--ink-2); }
+.chip.focus { box-shadow: inset 0 1px 0 var(--glass-edge), 0 0 0 3px var(--accent), 0 0 28px 4px var(--accent); }
+.chip.focus svg { color: var(--ink); }
+.tile img.art { width: 100%; height: 100%; max-width: none; max-height: none; object-fit: cover; border-radius: inherit; }
+#wx-text { color: var(--ink-2); font-weight: 400; }
+
+/* ---------- cards ---------- */
+.card { border-radius: var(--radius); padding: 30px 34px; }
+.card-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px; }
+.card-title { font-size: 30px; font-weight: 650; }
+.muted { color: var(--ink-3); font-size: 21px; }
+
+#calendar { right: 88px; top: 72px; width: 580px; height: 478px; }
+#cal-list { height: 370px; overflow: hidden; }
+.day-group { margin-bottom: 14px; }
+.day-name { font-size: 19px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: var(--ink-3); margin-bottom: 6px; }
+.day-group.today .day-name { color: var(--accent); }
+.ev { display: flex; align-items: baseline; gap: 18px; padding: 6px 0; }
+.ev-time { width: 112px; flex: none; font-size: 22px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.ev-title { font-size: 25px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.empty { color: var(--ink-3); font-size: 24px; padding-top: 6px; }
+
+#sketch { right: 88px; top: 574px; width: 580px; height: 180px; padding: 20px; display: flex; gap: 26px; align-items: center; }
+#sketch-frame { width: 140px; height: 140px; border-radius: 22px; background: #fff; flex: none;
+                display: flex; align-items: center; justify-content: center; overflow: hidden;
+                box-shadow: inset 0 0 0 1px var(--glass-line); }
+#sketch-img { max-width: 100%; max-height: 100%; display: none; }
+#sketch-text { display: flex; flex-direction: column; gap: 8px; }
+#sketch-hint { font-size: 21px; color: var(--ink-3); line-height: 1.35; width: 330px; }
+#sketch.empty-state #sketch-frame { background: transparent; box-shadow: inset 0 0 0 2px var(--glass-edge); }
+
+/* ---------- dock ---------- */
+#dock { left: 50%; bottom: 96px; transform: translateX(-50%); height: 168px; padding: 0 22px; border-radius: 44px;
+        display: flex; align-items: center; overflow: visible; }
+#dock::before { border-radius: inherit; }
+#dock-tiles { display: flex; gap: 20px; }
+.tile {
+  position: relative; width: 196px; height: 124px; border-radius: 26px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--tile);
+  box-shadow: inset 0 1px 0 var(--glass-edge), inset 0 0 0 1px var(--glass-line);
+  transition: transform 160ms ease-out, box-shadow 160ms ease-out;
+}
+.tile img { max-width: 80%; max-height: 66%; }
+.tile .name { font-size: 27px; font-weight: 650; color: var(--ink); }
+.tile.focus {
+  transform: scale(1.12);
+  z-index: 2;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.6),
+    0 0 0 2px var(--glow),
+    0 0 26px 4px var(--glow),
+    0 22px 60px 10px var(--glow-soft);
+}
+.tile.focus::after { /* glassy highlight across the focused tile */
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.06) 40%, rgba(255, 255, 255, 0) 62%);
+}
+#dock-label { position: absolute; bottom: 42px; left: 0; width: 1920px; text-align: center; font-size: 26px; font-weight: 600; color: var(--ink-2); }
