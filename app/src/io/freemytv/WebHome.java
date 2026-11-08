@@ -8,9 +8,13 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.hardware.display.DisplayManager;
+import android.media.AudioManager;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.util.Base64;
+import android.view.Display;
 import android.view.KeyEvent;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
@@ -99,13 +103,60 @@ final class WebHome extends FrameLayout {
         addView(web, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         web.loadUrl(PAGE);
         web.requestFocus();
-        // The TV coming out of standby: the page plays its intro (window.onTvWake).
-        a.registerReceiver(wake, new IntentFilter(Intent.ACTION_SCREEN_ON));
+        // The TV coming on: the page plays its intro (window.onTvWake). Three signs, whichever this TV gives:
+        // the stick itself waking (SCREEN_ON); the TV's HDMI coming back while the stick stayed awake (HDMI audio
+        // plug, which most TVs drop in standby); and the display turning on again (DisplayManager).
+        IntentFilter f = new IntentFilter(Intent.ACTION_SCREEN_ON);
+        f.addAction(AudioManager.ACTION_HDMI_AUDIO_PLUG);
+        a.registerReceiver(wake, f);
+        displays = a.getSystemService(DisplayManager.class);
+        if (displays != null) {
+            Display d = displays.getDisplay(Display.DEFAULT_DISPLAY);
+            displayOn = d == null || d.getState() == Display.STATE_ON;
+            displays.registerDisplayListener(displayWatch, main);
+        }
+    }
+
+    private DisplayManager displays;
+    private boolean displayOn = true;
+    private int hdmiState = -1;          // -1 until the sticky broadcast tells us where it stands
+    private long lastWake;
+
+    /** Plays the intro once per TV start (several signs can arrive for the same one). */
+    private void tvCameOn(String why) {
+        long now = SystemClock.elapsedRealtime();
+        AppLog.w("web home: TV on (" + why + ")" + (now - lastWake < 20_000 ? ", intro already played" : ""));
+        if (now - lastWake < 20_000) return;
+        lastWake = now;
+        js("window.onTvWake && window.onTvWake()");
     }
 
     private final BroadcastReceiver wake = new BroadcastReceiver() {
         @Override public void onReceive(Context c, Intent i) {
-            js("window.onTvWake && window.onTvWake()");
+            if (Intent.ACTION_SCREEN_ON.equals(i.getAction())) {
+                tvCameOn("screen on");
+                return;
+            }
+            int state = i.getIntExtra(AudioManager.EXTRA_AUDIO_PLUG_STATE, -1);
+            int before = hdmiState;
+            hdmiState = state;
+            AppLog.w("web home: HDMI " + (state == 1 ? "connected" : state == 0 ? "disconnected" : "unknown")
+                    + (isInitialStickyBroadcast() ? " (at start)" : ""));
+            if (!isInitialStickyBroadcast() && before == 0 && state == 1) tvCameOn("HDMI back");
+        }
+    };
+
+    private final DisplayManager.DisplayListener displayWatch = new DisplayManager.DisplayListener() {
+        @Override public void onDisplayAdded(int id) { }
+        @Override public void onDisplayRemoved(int id) { }
+        @Override public void onDisplayChanged(int id) {
+            if (id != Display.DEFAULT_DISPLAY || displays == null) return;
+            Display d = displays.getDisplay(id);
+            boolean on = d != null && d.getState() == Display.STATE_ON;
+            if (on == displayOn) return;
+            displayOn = on;
+            AppLog.w("web home: display " + (on ? "on" : "off"));
+            if (on) tvCameOn("display on");
         }
     };
 
@@ -129,6 +180,7 @@ final class WebHome extends FrameLayout {
             activity.unregisterReceiver(wake);
         } catch (IllegalArgumentException ignored) {
         }
+        if (displays != null) displays.unregisterDisplayListener(displayWatch);
         net.shutdownNow();
         web.removeJavascriptInterface("TV");
         web.destroy();
