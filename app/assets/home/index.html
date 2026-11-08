@@ -27,21 +27,19 @@
       </div>
     </header>
 
-    <section id="calendar" class="glass card">
+    <section id="sketch" class="glass card empty-state">
+      <div id="sketch-frame"><img id="sketch-img" alt=""><div id="sketch-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"/></svg>
+        <span>Draw on your phone and tap Send</span></div></div>
+      <div id="sketch-meta"><span id="sketch-from"></span><span id="sketch-when" class="muted"></span></div>
+    </section>
+
+    <section id="week" class="glass card">
       <div class="card-head">
         <span class="card-title">This week</span>
         <span id="cal-status" class="muted"></span>
       </div>
-      <div id="cal-list"></div>
-    </section>
-
-    <section id="sketch" class="glass card empty-state">
-      <div id="sketch-frame"><img id="sketch-img" alt=""></div>
-      <div id="sketch-text">
-        <span class="card-title">Sketches</span>
-        <span id="sketch-when" class="muted"></span>
-        <span id="sketch-hint">Draw on your phone and tap Send. It shows up here.</span>
-      </div>
+      <div id="week-cols"></div>
     </section>
 
     <nav id="dock" class="glass">

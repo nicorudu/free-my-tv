@@ -148,43 +148,48 @@
     return SHORT[d.getDay()] + " " + MONTHS[d.getMonth()].slice(0, 3) + " " + d.getDate();
   }
   function renderCalendar(events, status) {
-    var box = $("cal-list");
-    box.innerHTML = "";
     $("cal-status").textContent = status || "";
-    if (!events.length) { box.innerHTML = '<div class="empty">Nothing scheduled this week</div>'; return; }
-    var current = -1, group = null, shown = 0;
-    for (var i = 0; i < events.length; i++) {
-      var e = events[i];
-      if (e.day !== current) {
-        current = e.day;
-        group = document.createElement("div");
-        group.className = "day-group" + (e.day === 0 ? " today" : "");
-        group.innerHTML = '<div class="day-name">' + dayLabel(e.day) + "</div>";
-        box.appendChild(group);
+    var cols = $("week-cols");
+    cols.innerHTML = "";
+    var byDay = [[], [], [], [], [], [], []];
+    events.forEach(function (e) { if (e.day >= 0 && e.day < 7) byDay[e.day].push(e); });
+    for (var d = 0; d < 7; d++) {
+      var date = new Date(); date.setDate(date.getDate() + d);
+      var col = document.createElement("div");
+      col.className = "wday" + (d === 0 ? " today" : "");
+      col.innerHTML = '<div class="wday-head"><span class="wday-name"></span><span class="wday-num"></span></div>';
+      col.querySelector(".wday-name").textContent = d === 0 ? "Today" : SHORT[date.getDay()];
+      col.querySelector(".wday-num").textContent = date.getDate();
+      cols.appendChild(col);
+      var list = byDay[d];
+      if (!list.length) {
+        var none = document.createElement("div");
+        none.className = "wnone";
+        none.textContent = "Free";
+        col.appendChild(none);
+        continue;
       }
-      var r = document.createElement("div");
-      r.className = "ev";
-      r.innerHTML = '<span class="ev-time"></span><span class="ev-title"></span>';
-      r.firstChild.textContent = e.time;
-      r.lastChild.textContent = e.title;
-      group.appendChild(r);
-      if (box.scrollHeight > box.clientHeight) {   // out of room: say how many are left instead of cutting off
-        group.removeChild(r);
-        if (group.children.length === 1) box.removeChild(group);
-        var more = document.createElement("div");
-        more.className = "empty";
-        box.appendChild(more);
-        var left = events.length - shown;
-        if (box.scrollHeight > box.clientHeight && more.previousSibling) {
-          var g = more.previousSibling;
-          g.removeChild(g.lastChild);
-          if (g.children.length === 1) box.removeChild(g);
-          left++;
+      for (var i = 0; i < list.length; i++) {
+        var ev = document.createElement("div");
+        ev.className = "wev";
+        ev.innerHTML = '<div class="wev-time"></div><div class="wev-title"></div>';
+        ev.firstChild.textContent = list[i].time;
+        ev.lastChild.textContent = list[i].title;
+        col.appendChild(ev);
+        if (col.scrollHeight > col.clientHeight) {   // no room: swap the last one(s) for "+N more"
+          col.removeChild(ev);
+          var more = document.createElement("div");
+          more.className = "wmore";
+          var left = list.length - i;
+          col.appendChild(more);
+          if (col.scrollHeight > col.clientHeight && more.previousSibling && more.previousSibling.className === "wev") {
+            col.removeChild(more.previousSibling);
+            left++;
+          }
+          more.textContent = "+" + left + " more";
+          break;
         }
-        more.textContent = "+ " + left + " more this week";
-        break;
       }
-      shown++;
     }
   }
   function clockText(d) {
@@ -199,6 +204,41 @@
       }
       calLoaded = Date.now();
       renderCalendar(window.weekFromIcs(text, 7), "Updated " + clockText(new Date()));
+    });
+  }
+
+  // ---------- sketches from the phone (the relay on Cloudflare) ----------
+  var sketchTs = "", sketchSecs = 0, sketchFrom = "";
+  function sketchWhen() {
+    if (!sketchSecs) { $("sketch-when").textContent = ""; return; }
+    var ago = Math.max(0, Math.floor(Date.now() / 1000) - sketchSecs);
+    $("sketch-when").textContent = ago < 60 ? "Just now" : ago < 3600 ? Math.floor(ago / 60) + " min ago"
+      : ago < 86400 ? Math.floor(ago / 3600) + " hr ago" : ago < 172800 ? "Yesterday" : Math.floor(ago / 86400) + " days ago";
+  }
+  function showSketch(src, secs, from, fresh) {
+    var card = $("sketch"), img = $("sketch-img");
+    if (!src) { card.className = "glass card empty-state"; img.style.display = "none"; $("sketch-from").textContent = ""; sketchSecs = 0; sketchWhen(); return; }
+    img.src = src;
+    img.style.display = "block";
+    card.className = "glass card";
+    sketchSecs = secs;
+    $("sketch-from").textContent = from ? "From " + from : "Sketch";
+    sketchWhen();
+    if (fresh) { void card.offsetWidth; card.className = "glass card fresh"; }
+  }
+  function pollSketch() {
+    if (!tv) { var p = window.PREVIEW.sketch; showSketch(p.src, Math.floor(Date.now() / 1000) - p.ago, p.from, false); return; }
+    if (!CONFIG.sketchUrl || !CONFIG.sketchToken) { sketchWhen(); return; }
+    var base = CONFIG.sketchUrl.replace(/\/+$/, ""), t = encodeURIComponent(CONFIG.sketchToken);
+    tvGet(base + "/api/meta?t=" + t, function (status, text) {
+      if (status !== 200) return;
+      var j; try { j = JSON.parse(text); } catch (e) { return; }
+      if (!j.ts || j.ts === "0") { if (sketchTs) { sketchTs = ""; showSketch("", 0, "", false); } return; }
+      if (j.ts !== sketchTs) {
+        var first = sketchTs === "";
+        sketchTs = j.ts;
+        showSketch(base + "/api/latest.png?t=" + t + "&v=" + j.ts, j.secs, j.from || "", !first);
+      } else sketchWhen();
     });
   }
 
@@ -251,6 +291,8 @@
   if (params.get("intro") !== "0") playIntro();
   loadWeather();
   loadCalendar();
+  pollSketch();
+  setInterval(pollSketch, 4000);
   setInterval(tick, 10000);
   setInterval(loadWeather, 15 * 60 * 1000);
   setInterval(loadCalendar, (CONFIG.calendarRefreshMinutes || 30) * 60 * 1000);
