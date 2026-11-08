@@ -33,10 +33,11 @@ body.night {
 :root { --radius: 34px; --font: "SF Pro Display", "Google Sans", Roboto, "Segoe UI", system-ui, sans-serif; }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 1920px; height: 1080px; overflow: hidden; font-family: var(--font); }
+html, body { width: 100%; height: 100%; overflow: hidden; font-family: var(--font); }
 body { background: var(--base); color: var(--ink); transition: background 1.2s ease, color 1.2s ease; }
 
-#stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+/* Designed at 1920x1080 and scaled to the screen by app.js (fit()), whatever size the TV's browser reports. */
+#stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: hidden; transform-origin: 0 0; }
 #bg {
   position: absolute; inset: 0;
   background:

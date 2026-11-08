@@ -68,7 +68,9 @@ final class WebHome extends FrameLayout {
         s.setAllowFileAccess(true);
         s.setCacheMode(WebSettings.LOAD_DEFAULT);
         s.setUseWideViewPort(true);
-        s.setLoadWithOverviewMode(true);
+        s.setLoadWithOverviewMode(false);   // the page scales itself to the screen (app.js fit())
+        s.setTextZoom(100);                  // the TV's font size setting would break the fixed layout
+        s.setSupportZoom(false);
         s.setMediaPlaybackRequiresUserGesture(true);
         web.setBackgroundColor(Color.TRANSPARENT);
         web.setVerticalScrollBarEnabled(false);
@@ -78,7 +80,16 @@ final class WebHome extends FrameLayout {
                 return !url.startsWith("file:///android_asset/");   // the home page never navigates away
             }
         });
-        web.setWebChromeClient(new WebChromeClient());
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override public boolean onConsoleMessage(android.webkit.ConsoleMessage m) {
+                // The page's errors and logs, readable with `adb logcat -s FreeMyTV`.
+                if (m.messageLevel() == android.webkit.ConsoleMessage.MessageLevel.ERROR
+                        || m.messageLevel() == android.webkit.ConsoleMessage.MessageLevel.WARNING) {
+                    AppLog.w("web home: " + m.message() + " (" + m.sourceId() + ":" + m.lineNumber() + ")");
+                }
+                return true;
+            }
+        });
         web.addJavascriptInterface(new Bridge(), "TV");
         web.setFocusable(true);
         web.setFocusableInTouchMode(true);

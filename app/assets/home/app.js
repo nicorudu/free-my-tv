@@ -200,6 +200,17 @@
     });
   }
 
+  // ---------- fit the 1920x1080 design to the screen ----------
+  function fit() {
+    var w = window.innerWidth, h = window.innerHeight;
+    if (!w || !h) return;
+    var s = Math.min(w / 1920, h / 1080);
+    var stage = $("stage");
+    stage.style.transform = "translate(" + Math.round((w - 1920 * s) / 2) + "px," + Math.round((h - 1080 * s) / 2) + "px) scale(" + s + ")";
+  }
+  window.addEventListener("resize", fit);
+  fit();
+
   // ---------- start ----------
   try { apps = tv ? JSON.parse(tv.apps()) : window.PREVIEW.apps; } catch (e) { apps = []; }
   if (!tv) apps = apps.map(function (a) { return { pkg: a.pkg, name: a.name, color: a.brand }; });
