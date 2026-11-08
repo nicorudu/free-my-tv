@@ -129,4 +129,50 @@ body { background: var(--base); color: var(--ink); transition: background 1.2s e
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   background: linear-gradient(115deg, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0.06) 40%, rgba(255, 255, 255, 0) 62%);
 }
+/* ---------- Rueda TV intro (transform and opacity only: smooth on the stick) ---------- */
+#intro { position: absolute; inset: 0; z-index: 50; display: none; background: var(--base); overflow: hidden; }
+#intro.play { display: block; animation: intro-out 600ms ease-in 2900ms forwards; }
+.orb { position: absolute; left: 960px; top: 470px; width: 300px; height: 300px; margin: -150px 0 0 -150px; border-radius: 50%; opacity: 0; }
+.o1 { background: radial-gradient(circle at 35% 35%, #ffd0de, #f28aa8 70%); }
+.o2 { background: radial-gradient(circle at 35% 35%, #cfe1ff, #6f9cf2 70%); }
+.o3 { background: radial-gradient(circle at 35% 35%, #ffe6c2, #f2b46a 70%); }
+.o4 { background: radial-gradient(circle at 35% 35%, #e6d6ff, #9a7cf0 70%); }
+#intro.play .o1 { animation: orb-1 1300ms cubic-bezier(.2,.8,.2,1) forwards; }
+#intro.play .o2 { animation: orb-2 1300ms cubic-bezier(.2,.8,.2,1) 60ms forwards; }
+#intro.play .o3 { animation: orb-3 1300ms cubic-bezier(.2,.8,.2,1) 120ms forwards; }
+#intro.play .o4 { animation: orb-4 1300ms cubic-bezier(.2,.8,.2,1) 180ms forwards; }
+@keyframes orb-1 { 0% { opacity: 0; transform: translate(-640px, -380px) scale(.6); } 25% { opacity: .95; } 100% { opacity: 0; transform: translate(-46px, -46px) scale(.42); } }
+@keyframes orb-2 { 0% { opacity: 0; transform: translate(680px, -360px) scale(.6); } 25% { opacity: .95; } 100% { opacity: 0; transform: translate(46px, -46px) scale(.42); } }
+@keyframes orb-3 { 0% { opacity: 0; transform: translate(-620px, 420px) scale(.6); } 25% { opacity: .95; } 100% { opacity: 0; transform: translate(-46px, 46px) scale(.42); } }
+@keyframes orb-4 { 0% { opacity: 0; transform: translate(640px, 400px) scale(.6); } 25% { opacity: .95; } 100% { opacity: 0; transform: translate(46px, 46px) scale(.42); } }
+
+#intro-mark { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+#intro-lens { width: 196px; height: 196px; border-radius: 56px; opacity: 0; transform: scale(.4) rotate(-12deg);
+  background: conic-gradient(from 210deg, #f28aa8, #f2b46a, #6f9cf2, #9a7cf0, #f28aa8);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.65), inset 0 0 0 2px rgba(255,255,255,.35), 0 30px 80px rgba(111,156,242,.45); position: relative; }
+#intro-lens::after { content: ""; position: absolute; inset: 18px; border-radius: 40px;
+  background: linear-gradient(160deg, rgba(255,255,255,.75), rgba(255,255,255,.18) 55%, rgba(255,255,255,.05)); }
+#intro.play #intro-lens { animation: lens-in 900ms cubic-bezier(.2,.9,.25,1.15) 1050ms forwards; }
+@keyframes lens-in { to { opacity: 1; transform: scale(1) rotate(0deg); } }
+
+#intro-word { margin-top: 54px; font-size: 104px; letter-spacing: 18px; opacity: 0; transform: translateY(26px); white-space: nowrap; }
+#intro-word .w1 { font-weight: 700; }
+#intro-word .w2 { font-weight: 300; margin-left: 26px; color: var(--ink-2); }
+#intro.play #intro-word { animation: word-in 900ms cubic-bezier(.2,.8,.2,1) 1500ms forwards; }
+@keyframes word-in { to { opacity: 1; transform: translateY(0); letter-spacing: -1px; } }
+#intro-greet { margin-top: 26px; font-size: 32px; font-weight: 500; color: var(--ink-3); opacity: 0; }
+#intro.play #intro-greet { animation: greet-in 700ms ease-out 2050ms forwards; }
+@keyframes greet-in { to { opacity: 1; } }
+@keyframes intro-out { to { opacity: 0; transform: scale(1.04); } }
+
+/* After the intro the home screen's pieces float in, one after another. */
+body.arrive #top, body.arrive #calendar, body.arrive #sketch, body.arrive #dock, body.arrive #dock-label { opacity: 0; }
+body.arrive.go #top { animation: rise 700ms cubic-bezier(.2,.8,.2,1) forwards; }
+body.arrive.go #calendar { animation: rise 700ms cubic-bezier(.2,.8,.2,1) 90ms forwards; }
+body.arrive.go #sketch { animation: rise 700ms cubic-bezier(.2,.8,.2,1) 160ms forwards; }
+body.arrive.go #dock { animation: rise-dock 700ms cubic-bezier(.2,.8,.2,1) 230ms forwards; }
+body.arrive.go #dock-label { animation: rise 700ms cubic-bezier(.2,.8,.2,1) 300ms forwards; }
+@keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+@keyframes rise-dock { from { opacity: 0; transform: translate(-50%, 30px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
 #dock-label { position: absolute; bottom: 42px; left: 0; width: 1920px; text-align: center; font-size: 26px; font-weight: 600; color: var(--ink-2); }

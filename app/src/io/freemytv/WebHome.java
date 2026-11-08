@@ -2,7 +2,10 @@ package io.freemytv;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Handler;
@@ -96,7 +99,15 @@ final class WebHome extends FrameLayout {
         addView(web, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
         web.loadUrl(PAGE);
         web.requestFocus();
+        // The TV coming out of standby: the page plays its intro (window.onTvWake).
+        a.registerReceiver(wake, new IntentFilter(Intent.ACTION_SCREEN_ON));
     }
+
+    private final BroadcastReceiver wake = new BroadcastReceiver() {
+        @Override public void onReceive(Context c, Intent i) {
+            js("window.onTvWake && window.onTvWake()");
+        }
+    };
 
     void resume() {
         web.onResume();
@@ -114,6 +125,10 @@ final class WebHome extends FrameLayout {
     }
 
     void destroy() {
+        try {
+            activity.unregisterReceiver(wake);
+        } catch (IllegalArgumentException ignored) {
+        }
         net.shutdownNow();
         web.removeJavascriptInterface("TV");
         web.destroy();

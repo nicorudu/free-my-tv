@@ -22,7 +22,8 @@
     if (forced) night = forced === "night";
     else if (sun) { var now = new Date(); night = now < sun.rise || now >= sun.set; }
     else { var h = new Date().getHours(); night = h < 7 || h >= 18; }
-    document.body.className = night ? "night" : "day";
+    document.body.classList.toggle("night", night);
+    document.body.classList.toggle("day", !night);
   }
 
   // ---------- clock ----------
@@ -74,6 +75,7 @@
     if (a && tv) tv.launch(a.pkg);
   }
   document.addEventListener("keydown", function (e) {
+    if (introOn) { endIntro(); e.preventDefault(); return; }   // any button skips the intro
     var k = e.key;
     if (k === "ArrowLeft" && row === "dock" && apps.length) focus = (focus - 1 + apps.length) % apps.length;
     else if (k === "ArrowRight" && row === "dock" && apps.length) focus = (focus + 1) % apps.length;
@@ -200,6 +202,35 @@
     });
   }
 
+  // ---------- Rueda TV intro: at a fresh start and whenever the TV wakes up ----------
+  var introOn = false, introTimers = [];
+  function greeting() {
+    var h = new Date().getHours();
+    var part = h < 5 ? "Good evening" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+    var d = new Date();
+    return part + "  \u00B7  " + DAYS[d.getDay()] + ", " + MONTHS[d.getMonth()] + " " + d.getDate();
+  }
+  function endIntro() {
+    introTimers.forEach(clearTimeout);
+    introTimers = [];
+    introOn = false;
+    $("intro").className = "";
+    document.body.classList.remove("arrive", "go");
+  }
+  function playIntro() {
+    endIntro();
+    introOn = true;
+    $("intro-greet").textContent = greeting();
+    var intro = $("intro");
+    void intro.offsetWidth;   // restart the animations
+    intro.className = "play";
+    document.body.classList.add("arrive");
+    introTimers.push(setTimeout(function () { document.body.classList.add("go"); }, 3000));
+    introTimers.push(setTimeout(function () { introOn = false; intro.className = ""; }, 3500));
+    introTimers.push(setTimeout(function () { document.body.classList.remove("arrive", "go"); }, 4400));
+  }
+  window.onTvWake = playIntro;
+
   // ---------- fit the 1920x1080 design to the screen ----------
   function fit() {
     var w = window.innerWidth, h = window.innerHeight;
@@ -217,6 +248,7 @@
   if (params.get("focus")) focus = Math.max(0, apps.map(function (a) { return a.name.toLowerCase(); }).indexOf(params.get("focus").toLowerCase()));
   tick();
   renderDock();
+  if (params.get("intro") !== "0") playIntro();
   loadWeather();
   loadCalendar();
   setInterval(tick, 10000);
