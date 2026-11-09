@@ -174,11 +174,37 @@ final class WebHome extends FrameLayout {
     private int hdmiState = -1;          // -1 until the sticky broadcast tells us where it stands
     private long lastWake;
 
-    /** Plays the intro once per TV start (several signs can arrive for the same one). */
+    /**
+     * Plays the intro once per TV start. The TV's own CEC "power on" comes when its picture is up, so it wins: a sign
+     * from the stick itself (its screen waking, HDMI, the display) waits a few seconds and plays only if the TV hasn't
+     * reported in by then. Without that, a stick put to sleep with the TV (the onn remote's power button) played the
+     * intro on its own wake, while the TV was still starting and showed nothing, and then ignored the TV's report.
+     */
     private void tvCameOn(String why) {
+        tvCameOn(why, false);
+    }
+
+    private void tvCameOn(String why, boolean fromTv) {
         long now = SystemClock.elapsedRealtime();
-        AppLog.w("web home: TV on (" + why + ")" + (now - lastWake < 20_000 ? ", intro already played" : ""));
-        if (now - lastWake < 20_000) return;
+        boolean recent = now - lastWake < 20_000;
+        AppLog.w("web home: TV on (" + why + ")" + (recent ? ", intro already played" : fromTv ? "" : ", waiting for the TV"));
+        if (recent) return;
+        if (fromTv) {
+            main.removeCallbacks(introIfTvSilent);
+            playIntro(now);
+        } else {
+            main.removeCallbacks(introIfTvSilent);
+            main.postDelayed(introIfTvSilent, 6_000);
+        }
+    }
+
+    /** The stick woke but the TV said nothing (a TV without CEC, or one that was on already). */
+    private final Runnable introIfTvSilent = () -> {
+        long now = SystemClock.elapsedRealtime();
+        if (now - lastWake >= 20_000) playIntro(now);
+    };
+
+    private void playIntro(long now) {
         lastWake = now;
         js("window.onTvWake && window.onTvWake()");
     }
@@ -190,7 +216,7 @@ final class WebHome extends FrameLayout {
                 return;
             }
             if (TV_ON.equals(i.getAction())) {
-                tvCameOn("HDMI-CEC: the TV reported power on");
+                tvCameOn("HDMI-CEC: the TV reported power on", true);
                 return;
             }
             int state = i.getIntExtra(AudioManager.EXTRA_AUDIO_PLUG_STATE, -1);
@@ -233,6 +259,7 @@ final class WebHome extends FrameLayout {
     }
 
     void destroy() {
+        main.removeCallbacks(introIfTvSilent);
         try {
             activity.unregisterReceiver(wake);
         } catch (IllegalArgumentException ignored) {
