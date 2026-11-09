@@ -740,6 +740,7 @@ final class HomeMode {
                 AppLog.w("remote buttons service: " + e.getMessage());
             }
             wakeWatch(adb, false);
+            WebHome.stopCecWatch(adb);
             SleepTimer.stop(c);
             adb.shell("appops set " + PKG + " SYSTEM_ALERT_WINDOW default");   // SleepOverlay's, if it was allowed
             Capabilities.forget(c, Capabilities.OVERLAY);                       // asked again next time
@@ -882,6 +883,7 @@ final class HomeMode {
                 // The screensaver first: if that fails, the revert isn't marked done and the next try does it again.
                 restoreScreensaver(adb, s);
                 wakeWatch(adb, false);
+                WebHome.stopCecWatch(adb);
                 SleepTimer.stop(app);   // its row shows Unavailable from now on
                 try {
                     nowPlaying(app, adb, false);   // and so does Now Playing's

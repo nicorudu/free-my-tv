@@ -108,12 +108,64 @@ final class WebHome extends FrameLayout {
         // plug, which most TVs drop in standby); and the display turning on again (DisplayManager).
         IntentFilter f = new IntentFilter(Intent.ACTION_SCREEN_ON);
         f.addAction(AudioManager.ACTION_HDMI_AUDIO_PLUG);
+        f.addAction(TV_ON);
         a.registerReceiver(wake, f);
         displays = a.getSystemService(DisplayManager.class);
         if (displays != null) {
             Display d = displays.getDisplay(Display.DEFAULT_DISPLAY);
             displayOn = d == null || d.getState() == Display.STATE_ON;
             displays.registerDisplayListener(displayWatch, main);
+        }
+        startCecWatch();
+    }
+
+    /**
+     * With the stick kept awake (so the TV never shows its own "waiting for HDMI" card), nothing on the stick changes
+     * when the TV turns on: no screen-on, no HDMI plug event. The TV does broadcast HDMI-CEC <Report Power Status> "on"
+     * to every device (a Hisense Roku TV: "RCV [Report Power Status][opcode:90][vaule:00] from <0> to <15>" in the
+     * system log), but apps can't read CEC. This loop runs in adb's shell through the TV's own ADB (uid 2000 may read
+     * the log), as HomeMode's wake watch does, and broadcasts TV_ON to us on each. A restart ends it; the home screen
+     * starts it again when it can reach ADB (port 5555 open). Its name is in its command line, so pgrep finds only it.
+     */
+    static final String TV_ON = "io.freemytv.TV_ON";
+    private static final String CEC_WATCH = "freemytv-cec";
+    private static final String CEC_MATCH = "'freemytv-ce[c]'";
+    private static final String CEC_LOOP = "trap \"\" HUP; logcat -T 1 -e \"Power Status.*vaule:00.*from <0> to <15>\""
+            + " | while read -r line; do am broadcast -a " + TV_ON + " -p io.freemytv >/dev/null 2>&1; done";
+    private long lastCecTry;
+    private volatile boolean cecOn;
+
+    /** Starts the CEC loop once (left alone when it runs already). Never throws: :home's watchdog counts escapes. */
+    private void startCecWatch() {
+        long now = SystemClock.elapsedRealtime();
+        if (cecOn || (lastCecTry != 0 && now - lastCecTry < 10 * 60_000)) return;
+        lastCecTry = now;
+        net.execute(() -> {
+            try (Adb adb = Adb.connect(activity, 0, null)) {
+                if (!cecRunning(adb)) {
+                    adb.shell("trap \"\" HUP; setsid sh -c '" + CEC_LOOP + "' " + CEC_WATCH + " </dev/null >/dev/null 2>&1 &");
+                }
+                cecOn = cecRunning(adb);
+                AppLog.w(cecOn ? "web home: CEC watch on (the intro plays when the TV turns on)" : "web home: CEC watch didn't start");
+            } catch (Throwable e) {
+                AppLog.w("web home: CEC watch: " + e.getMessage());
+            }
+        });
+    }
+
+    private static boolean cecRunning(Adb adb) throws java.io.IOException {
+        return adb.shell("pgrep -f " + CEC_MATCH).trim().matches("\\d+(\\s+\\d+)*");
+    }
+
+    /** Original and the watchdog's revert: the loop goes with the home screen. */
+    static void stopCecWatch(Adb adb) {
+        try {
+            if (cecRunning(adb)) {
+                adb.shell("pkill -f " + CEC_MATCH);
+                AppLog.w("web home: CEC watch off");
+            }
+        } catch (java.io.IOException e) {
+            AppLog.w("web home: CEC watch: " + e.getMessage());
         }
     }
 
@@ -135,6 +187,10 @@ final class WebHome extends FrameLayout {
         @Override public void onReceive(Context c, Intent i) {
             if (Intent.ACTION_SCREEN_ON.equals(i.getAction())) {
                 tvCameOn("screen on");
+                return;
+            }
+            if (TV_ON.equals(i.getAction())) {
+                tvCameOn("HDMI-CEC: the TV reported power on");
                 return;
             }
             int state = i.getIntExtra(AudioManager.EXTRA_AUDIO_PLUG_STATE, -1);
@@ -161,6 +217,7 @@ final class WebHome extends FrameLayout {
     };
 
     void resume() {
+        startCecWatch();   // again after a restart, which ends it (at most every 10 minutes while it can't start)
         web.onResume();
         web.requestFocus();
         js("window.onTvResume && window.onTvResume()");
