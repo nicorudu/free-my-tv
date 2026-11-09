@@ -152,6 +152,7 @@ body.night .glass { border-color: rgba(255, 255, 255, 0.14); }
 }
 /* ---------- Rueda TV intro (transform and opacity only: smooth on the stick) ---------- */
 #intro { position: absolute; inset: 0; z-index: 50; display: none; background: var(--base); overflow: hidden; }
+#intro.hold { display: block; }
 #intro.play { display: block; animation: intro-out 600ms ease-in 2900ms forwards; }
 .orb { position: absolute; left: 960px; top: 470px; width: 300px; height: 300px; margin: -150px 0 0 -150px; border-radius: 50%; opacity: 0; }
 .o1 { background: radial-gradient(circle at 35% 35%, #ffd0de, #f28aa8 70%); }

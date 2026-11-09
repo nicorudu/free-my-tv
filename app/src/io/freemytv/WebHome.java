@@ -191,7 +191,7 @@ final class WebHome extends FrameLayout {
         if (recent) return;
         if (fromTv) {
             main.removeCallbacks(introIfTvSilent);
-            playIntro(now);
+            playIntro(now, TV_CARD_MS);
         } else {
             main.removeCallbacks(introIfTvSilent);
             main.postDelayed(introIfTvSilent, 6_000);
@@ -201,12 +201,18 @@ final class WebHome extends FrameLayout {
     /** The stick woke but the TV said nothing (a TV without CEC, or one that was on already). */
     private final Runnable introIfTvSilent = () -> {
         long now = SystemClock.elapsedRealtime();
-        if (now - lastWake >= 20_000) playIntro(now);
+        if (now - lastWake >= 20_000) playIntro(now, 0);
     };
 
-    private void playIntro(long now) {
+    /**
+     * How long the TV's own "switching to HDMI" card stays up after it reports power on (a Hisense Roku TV: a second
+     * or two). The page shows the intro's plain background at once and starts it after this, so nothing is cut off.
+     */
+    private static final int TV_CARD_MS = 2_200;
+
+    private void playIntro(long now, int holdMs) {
         lastWake = now;
-        js("window.onTvWake && window.onTvWake()");
+        js("window.onTvWake && window.onTvWake(" + holdMs + ")");
     }
 
     private final BroadcastReceiver wake = new BroadcastReceiver() {

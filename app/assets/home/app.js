@@ -257,11 +257,25 @@
     $("intro").className = "";
     document.body.classList.remove("arrive", "go");
   }
-  function playIntro() {
+  // holdMs: show the intro's plain background right away and start it that much later, so the TV's own
+  // "switching to HDMI" card is gone before anything moves.
+  function playIntro(holdMs) {
     endIntro();
     introOn = true;
     $("intro-greet").textContent = greeting();
     var intro = $("intro");
+    if (holdMs > 0) {
+      intro.className = "hold";
+      document.body.classList.add("arrive");
+      introTimers.push(setTimeout(function () { startIntro(); }, holdMs));
+      return;
+    }
+    startIntro();
+  }
+  function startIntro() {
+    var intro = $("intro");
+    introTimers.forEach(clearTimeout);
+    introTimers = [];
     void intro.offsetWidth;   // restart the animations
     intro.className = "play";
     document.body.classList.add("arrive");
@@ -269,7 +283,7 @@
     introTimers.push(setTimeout(function () { introOn = false; intro.className = ""; }, 3500));
     introTimers.push(setTimeout(function () { document.body.classList.remove("arrive", "go"); }, 4400));
   }
-  window.onTvWake = playIntro;
+  window.onTvWake = function (holdMs) { playIntro(holdMs || 0); };
 
   // ---------- fit the 1920x1080 design to the screen ----------
   function fit() {
