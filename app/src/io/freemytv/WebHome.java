@@ -317,6 +317,11 @@ final class WebHome extends FrameLayout {
         }
 
         /** One of the web home screen's private links, sent with adb (Secrets.WEB_HOME), or "". */
+        /** The weather location from Settings > City (or the time zone's city), kept on the TV, not in the code. */
+        @JavascriptInterface public String location() {
+            return Prefs.latitude() + "," + Prefs.longitude();
+        }
+
         @JavascriptInterface public String secret(String name) {
             return Secrets.WEB_HOME.contains(name) ? Secrets.get(activity, name) : "";
         }

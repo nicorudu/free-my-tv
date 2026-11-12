@@ -15,6 +15,10 @@
     CONFIG.sketchUrl = tv.secret("sketch_url") || CONFIG.sketchUrl;
     CONFIG.sketchToken = tv.secret("sketch_token") || CONFIG.sketchToken;
   }
+  if (tv && tv.location) {
+    var here = String(tv.location() || "").split(",");
+    if (here.length === 2 && here[0] && here[1]) { CONFIG.lat = here[0]; CONFIG.lon = here[1]; }
+  }
 
   // ---------- theme: light from sunrise to sunset, dark otherwise ----------
   function setTheme() {
