@@ -286,6 +286,15 @@ const PAGE = `<!doctype html>
   };
 
   redraw();
+
+  // Opened from the Rueda TV shortcut: &from=Nico picks the name, &heart=1 sends a heart straight away.
+  const q = new URLSearchParams(location.search);
+  if (names.includes(q.get("from"))) [...who.children].find(b => b.textContent === q.get("from")).click();
+  if (q.get("heart") === "1") {
+    q.delete("heart");
+    history.replaceState(null, "", "?" + q.toString());   // so reopening the tab doesn't send it again
+    document.getElementById("heart").click();
+  }
 })();
 </script>
 </body>
