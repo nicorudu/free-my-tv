@@ -246,6 +246,89 @@
     });
   }
 
+  // ---------- shared reminders (an iPhone Shortcut sends the list to the relay) ----------
+  var remTs = "", remSecs = 0, remSeen = null;
+  var DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  // "2026-11-12", "2026-11-12T17:00:00-05:00" or "" -> { at: Date, timed: bool } or null
+  function parseDue(s) {
+    s = String(s || "").trim();
+    var m = /^(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?/.exec(s);
+    if (!m) return null;
+    var at = m[4] !== undefined && /[zZ]|[+-]\d{2}:?\d{2}$/.test(s) ? new Date(s) : new Date(+m[1], m[2] - 1, +m[3], +(m[4] || 0), +(m[5] || 0));
+    if (isNaN(at)) return null;
+    return { at: at, timed: m[4] !== undefined && (at.getHours() || at.getMinutes()) ? true : false };
+  }
+  function dayDiff(d) {
+    var a = new Date(); a.setHours(0, 0, 0, 0);
+    var b = new Date(d); b.setHours(0, 0, 0, 0);
+    return Math.round((b - a) / 86400000);
+  }
+  function dueLabel(due) {
+    if (!due) return { text: "", cls: "" };
+    var n = dayDiff(due.at), late = n < 0 || (n === 0 && due.timed && due.at < new Date());
+    var text = n === 0 ? (due.timed ? clockText(due.at) : "Today") : n === 1 ? "Tomorrow" : n === -1 ? "Yesterday"
+      : n > 1 && n < 7 ? DAYS[due.at.getDay()] : MONTHS[due.at.getMonth()] + " " + due.at.getDate();
+    return { text: text, cls: late ? "late" : n === 0 ? "today" : "" };
+  }
+  function renderReminders(items, status) {
+    var list = items.map(function (r, i) { return { t: r.t, due: parseDue(r.due), i: i }; }).filter(function (r) { return r.t; });
+    list.sort(function (a, b) {   // dated first, soonest at the top; undated after, in the phone's order
+      if (a.due && b.due) return a.due.at - b.due.at || a.i - b.i;
+      if (a.due || b.due) return a.due ? -1 : 1;
+      return a.i - b.i;
+    });
+    var el = $("rem-list");
+    $("rem-status").textContent = status || "";
+    if (!list.length) {
+      el.innerHTML = '<div class="rem-none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.6 2.6L16.5 9"/></svg><span>All done. Add one on your iPhone</span></div>';
+      remSeen = {};
+      return;
+    }
+    var max = 7, shown = list.length > max ? list.slice(0, max - 1) : list;
+    var seen = {}, html = "";
+    shown.forEach(function (r) {
+      var d = dueLabel(r.due), isNew = remSeen && !remSeen[r.t];
+      seen[r.t] = 1;
+      html += '<div class="rem ' + d.cls + (isNew ? " fresh" : "") + '"><span class="rem-dot"></span><span class="rem-title">' + esc(r.t)
+        + '</span><span class="rem-due">' + esc(d.text) + "</span></div>";
+    });
+    list.slice(shown.length).forEach(function (r) { seen[r.t] = 1; });
+    if (list.length > shown.length) html += '<div class="rem-more">+' + (list.length - shown.length) + " more</div>";
+    el.innerHTML = html;
+    remSeen = seen;
+  }
+  function remWhen() {
+    if (!remSecs) return "";
+    var ago = Math.max(0, Math.floor(Date.now() / 1000) - remSecs);
+    return ago < 90 ? "Updated just now" : ago < 3600 ? "Updated " + Math.floor(ago / 60) + " min ago"
+      : ago < 86400 ? "Updated " + Math.floor(ago / 3600) + " hr ago" : "Updated " + Math.floor(ago / 86400) + " d ago";
+  }
+  var remItems = [];
+  function pollReminders() {
+    if (!tv) {
+      remItems = window.PREVIEW.reminders.map(function (r) {
+        if (r.due === null) return { t: r.t, due: "" };
+        var d = new Date(); d.setDate(d.getDate() + r.due);
+        var iso = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2);
+        if (r.time) { var m = /(\d+):(\d+) (AM|PM)/.exec(r.time); iso += "T" + ("0" + ((+m[1] % 12) + (m[3] === "PM" ? 12 : 0))).slice(-2) + ":" + m[2] + ":00"; }
+        return { t: r.t, due: iso };
+      });
+      remSecs = Math.floor(Date.now() / 1000) - 120;
+      renderReminders(remItems, remWhen());
+      return;
+    }
+    if (!CONFIG.sketchUrl || !CONFIG.sketchToken) { renderReminders([], "No relay link"); return; }
+    var base = CONFIG.sketchUrl.replace(/\/+$/, ""), t = encodeURIComponent(CONFIG.sketchToken);
+    tvGet(base + "/api/reminders?t=" + t, function (status, text) {
+      if (status !== 200) { if (!remTs) $("rem-status").textContent = "Couldn't load"; return; }
+      var j; try { j = JSON.parse(text); } catch (e) { return; }
+      if (j.ts !== remTs) { remTs = j.ts; remSecs = j.secs || 0; remItems = j.items || []; }
+      renderReminders(remItems, remSecs ? remWhen() : "Not synced yet");
+    });
+  }
+
   // ---------- Rueda TV intro: at a fresh start and whenever the TV wakes up ----------
   var introOn = false, introTimers = [];
   function greeting() {
@@ -310,7 +393,9 @@
   loadWeather();
   loadCalendar();
   pollSketch();
+  pollReminders();
   setInterval(pollSketch, 4000);
+  setInterval(pollReminders, 20000);
   setInterval(tick, 10000);
   setInterval(loadWeather, 15 * 60 * 1000);
   setInterval(loadCalendar, (CONFIG.calendarRefreshMinutes || 30) * 60 * 1000);

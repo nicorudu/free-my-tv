@@ -11,8 +11,12 @@
 //   GET  /api/meta         {"ts": "<ms>", "secs": <unix seconds>, "from": "Nico"} of the latest drawing
 //   GET  /api/latest.png   the latest drawing
 //   POST /api/clear        removes the latest drawing
+//   POST /api/reminders    the shared reminders list, sent by an iPhone Shortcut: one reminder per line,
+//                          "due|title" (due may be empty), as plain text or JSON {"list": "..."}
+//   GET  /api/reminders    {"ts": "<ms>", "secs": <unix seconds>, "items": [{"t": "title", "due": "2026-11-12T17:00"}]}
 
 const MAX_BYTES = 1_500_000;
+const MAX_REMINDERS = 60;
 
 export default {
   async fetch(req, env) {
@@ -62,9 +66,48 @@ export default {
       return json({ ok: true });
     }
 
+    if (url.pathname === "/api/reminders" && req.method === "POST") {
+      const raw = await req.text();
+      if (raw.length > 50_000) return json({ ok: false, error: "size" }, 400);
+      let text = raw;
+      try {
+        const j = JSON.parse(raw);
+        if (j && typeof j === "object") text = Array.isArray(j.items) ? j.items.map(i => (i.due || "") + "|" + (i.t || i.title || "")).join("\n") : String(j.list ?? "");
+      } catch (e) { /* plain text */ }
+      const items = [];
+      for (const line of text.split(/\r?\n/)) {
+        const bar = line.indexOf("|");
+        const due = bar >= 0 ? normDue(line.slice(0, bar)) : "";
+        const t = (bar >= 0 ? line.slice(bar + 1) : line).replace(/[\u0000-\u001f]/g, "").trim().slice(0, 120);
+        if (t && items.length < MAX_REMINDERS) items.push({ t, due });
+      }
+      const ms = Date.now();
+      await env.DRAWINGS.put("reminders", JSON.stringify({ ts: String(ms), items }));
+      return json({ ok: true, count: items.length });
+    }
+
+    if (url.pathname === "/api/reminders" && req.method === "GET") {
+      const saved = JSON.parse((await env.DRAWINGS.get("reminders")) || '{"ts":"0","items":[]}');
+      return json({ ts: saved.ts, secs: Math.floor(Number(saved.ts) / 1000), items: saved.items });
+    }
+
     return new Response("Not found", { status: 404 });
   },
 };
+
+// A due date as the TV reads it: "2026-11-12" or "2026-11-12T17:00" (the phone's own time, no zone).
+// Takes ISO 8601 from the Shortcut, and also the phone's plain format ("Nov 12, 2026 at 5:00 PM").
+function normDue(s) {
+  s = String(s || "").trim();
+  if (!s) return "";
+  const iso = /^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}:\d{2}))?/.exec(s);
+  if (iso) return iso[2] && iso[2] !== "00:00" ? iso[1] + "T" + iso[2] : iso[1];
+  const d = new Date(Date.parse(s.replace(/ at /i, " ").replace(/\u202f/g, " ") + " UTC"));
+  if (isNaN(d)) return "";
+  const p = n => String(n).padStart(2, "0");
+  const day = d.getUTCFullYear() + "-" + p(d.getUTCMonth() + 1) + "-" + p(d.getUTCDate());
+  return d.getUTCHours() || d.getUTCMinutes() ? day + "T" + p(d.getUTCHours()) + ":" + p(d.getUTCMinutes()) : day;
+}
 
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), {

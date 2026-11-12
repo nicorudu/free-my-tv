@@ -10,6 +10,16 @@ window.PREVIEW = {
     { pkg: "com.spotify.tv.android", name: "Spotify", brand: "#1ed760" }
   ],
   sketch: { src: "data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20720%20720%22%3E%3Crect%20width%3D%22720%22%20height%3D%22720%22%20fill%3D%22%23fff%22/%3E%3Cpath%20d%3D%22M360%20560%20C%20200%20450%20150%20360%20175%20290%20C%20200%20215%20300%20205%20360%20285%20C%20420%20205%20520%20215%20545%20290%20C%20570%20360%20520%20450%20360%20560%20Z%22%20fill%3D%22none%22%20stroke%3D%22%23e5484d%22%20stroke-width%3D%2216%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3Cpath%20d%3D%22M250%20600%20q%2040%20-20%2080%200%22%20fill%3D%22none%22%20stroke%3D%22%231d2127%22%20stroke-width%3D%2210%22%20stroke-linecap%3D%22round%22/%3E%3C/svg%3E", from: "Nico", ago: 40 },
+  reminders: [
+    { t: "Pay the water bill", due: -1 },
+    { t: "Pick up dry cleaning", due: 0, time: "5:00 PM" },
+    { t: "Call the vet about Bella", due: 0 },
+    { t: "Paper towels and coffee", due: null },
+    { t: "Book flights for Thanksgiving", due: 2 },
+    { t: "Return the Amazon package", due: 3 },
+    { t: "Change the air filter", due: null },
+    { t: "Renew car registration", due: 9 }
+  ],
   weather: { temp: 59, text: "Mostly sunny", code: 1, isDay: true },
   events: [
     { day: 0, time: "6:30 PM", title: "Dinner at Mom's" },
