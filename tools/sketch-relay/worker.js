@@ -157,6 +157,7 @@ const PAGE = `<!doctype html>
   .who button { height:36px; padding:0 16px; border-radius:18px; border:1px solid var(--line); background:var(--card); color:var(--ink); font-weight:600; }
   .who button.on { background:var(--accent); color:#fff; border-color:transparent; }
   button.heart { flex:0.7; color:#e5484d; font-size:24px; }
+  button.linkbtn { border:0; background:none; color:var(--sub); font-size:14px; text-decoration:underline; padding:6px; }
 </style>
 </head>
 <body>
@@ -177,6 +178,7 @@ const PAGE = `<!doctype html>
     <button class="act send" id="send">Send</button>
   </div>
   <div id="status" role="status"></div>
+  <button class="linkbtn" id="copylink">Copy link for the Rueda TV shortcut</button>
 <script>
 (() => {
   const token = new URLSearchParams(location.search).get("t") || "";
@@ -286,6 +288,17 @@ const PAGE = `<!doctype html>
   };
 
   redraw();
+
+  // The private link, for pasting into the Rueda TV shortcut (a home-screen web app has no address bar).
+  document.getElementById("copylink").onclick = async () => {
+    const link = location.origin + "/?t=" + encodeURIComponent(token);
+    try { await navigator.clipboard.writeText(link); }
+    catch (e) {
+      const ta = document.createElement("textarea"); ta.value = link; document.body.appendChild(ta);
+      ta.select(); document.execCommand("copy"); ta.remove();
+    }
+    status.textContent = "Link copied. Paste it into the shortcut.";
+  };
 
   // Opened from the Rueda TV shortcut: &from=Nico picks the name, &heart=1 sends a heart straight away.
   const q = new URLSearchParams(location.search);
